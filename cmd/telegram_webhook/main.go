@@ -84,7 +84,7 @@ func handleTelegramWebhook(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if update.Message.MessageID <= 0 {
+	if update.Message == nil {
 		w.Write([]byte("false"))
 		return
 	}
