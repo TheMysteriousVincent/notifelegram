@@ -85,7 +85,12 @@ func handleTelegramWebhook(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if update.Message.IsCommand() {
-		fmt.Println(update.Message.CommandArguments())
+		str := update.Message.CommandArguments()
+		if str != "" {
+			fmt.Println(str)
+		} else {
+			fmt.Println("somehow there is a nil pointer to the args")
+		}
 	} else {
 		f, err := os.Open(*helpFile)
 		if err != nil {
