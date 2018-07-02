@@ -5,10 +5,11 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/gorilla/mux"
+
 	"github.com/playnet-public/flagenv"
 
-//	"github.com/gorilla/mux"
-//	"github.com/urfave/negroni"
+	"github.com/urfave/negroni"
 
 	tba "github.com/TheMysteriousVincent/telegram-bot-api"
 )
@@ -23,8 +24,8 @@ var (
 	webhookPort = flagenv.Int("webhook-port", 88, "The webhook port")
 	host        = flagenv.String("host", "0.0.0.0", "The host of the http server")
 	port        = flagenv.Int("port", 88, "The port of the http server")
-	certFile = flagenv.String("cert-file", "", "The certfile to establish a secure connection")
-	keyFile = flagenv.String("key-file", "", "The keyfile to establish a secure connection")
+	certFile    = flagenv.String("cert-file", "", "The certfile to establish a secure connection")
+	keyFile     = flagenv.String("key-file", "", "The keyfile to establish a secure connection")
 )
 
 func main() {
@@ -35,16 +36,16 @@ func main() {
 		log.Fatal(err)
 	}
 	bot.Debug = true
-	webhookAddress := fmt.Sprintf(
-		"https://%s:%d/%s",
-		*webhookHost,
-		*webhookPort,
-		bot.Token,
-	)
 
 	_, err = bot.SetWebhook(
 		tba.NewWebhookWithCert(
-			webhookAddress,
+			fmt.Sprintf(
+				"https://%s:%d/%s%s",
+				*webhookHost,
+				*webhookPort,
+				webhookPath,
+				bot.Token,
+			),
 			*certFile,
 		),
 	)
@@ -52,6 +53,11 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	n := negroni.Classic()
+	r := mux.NewRouter()
+	r.Methods("POST").Path(webhookPath + bot.Token).Name("TelegramWebhookHandler").HandlerFunc(handleTelegramWebhook)
+	n.UseHandler(r)
 
 	updates := bot.ListenForWebhook("/" + bot.Token)
 	go http.ListenAndServeTLS("0.0.0.0:88", "cert.pem", "key.pem", nil)
@@ -63,10 +69,10 @@ func main() {
 
 func handleTelegramWebhook(w http.ResponseWriter, r *http.Request) {
 	log.Println(r)
-/*	update, err := tba.GetWebhookUpdate(r)
+	update, err := tba.GetWebhookUpdate(r)
 	if err != nil {
 		w.Write([]byte("false"))
 	}
 
-	log.Println(update)*/
+	log.Println(update)
 }
