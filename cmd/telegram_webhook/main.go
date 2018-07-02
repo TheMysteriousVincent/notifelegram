@@ -2,10 +2,13 @@ package main
 
 import (
 	"fmt"
+	"io/ioutil"
 	"log"
 	"net/http"
+	"os"
 
 	"github.com/gorilla/mux"
+	gitlab "github.com/xanzy/go-gitlab"
 
 	"github.com/playnet-public/flagenv"
 
@@ -19,19 +22,27 @@ const (
 )
 
 var (
-	apiKey      = flagenv.String("telegram-bot-api-key", "", "This is your telegram bot-api-token")
-	webhookHost = flagenv.String("webhook-host", "localhost", "The webhook host")
-	webhookPort = flagenv.Int("webhook-port", 88, "The webhook port")
-	host        = flagenv.String("host", "0.0.0.0", "The host of the http server")
-	port        = flagenv.Int("port", 88, "The port of the http server")
-	certFile    = flagenv.String("cert-file", "", "The certfile to establish a secure connection")
-	keyFile     = flagenv.String("key-file", "", "The keyfile to establish a secure connection")
+	apiKey       = flagenv.String("telegram-bot-api-key", "", "This is your telegram bot-api-token")
+	webhookHost  = flagenv.String("webhook-host", "localhost", "The webhook host")
+	webhookPort  = flagenv.Int("webhook-port", 88, "The webhook port")
+	host         = flagenv.String("host", "0.0.0.0", "The host of the http server")
+	port         = flagenv.Int("port", 88, "The port of the http server")
+	certFile     = flagenv.String("cert-file", "", "The certfile to establish a secure connection")
+	keyFile      = flagenv.String("key-file", "", "The keyfile to establish a secure connection")
+	helpFile     = flagenv.String("helpFile", "help.html", "This is the default help page. Will be displayed everytime if a entered command was unknown or the message was no command")
+	gitlabKey    = flagenv.String("gitlab-api-key", "", "The GitLab server API key")
+	gitlabClient *gitlab.Client
+	bot          *tba.BotAPI
 )
 
 func main() {
 	flagenv.Parse()
 
-	bot, err := tba.NewBotAPI(*apiKey)
+	gitlabClient = gitlab.NewClient(nil, *gitlabKey)
+	gitlabClient.SetBaseURL("https://gitlab.allgameplay.de/api/v4/")
+
+	var err error
+	bot, err = tba.NewBotAPI(*apiKey)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -66,11 +77,30 @@ func main() {
 }
 
 func handleTelegramWebhook(w http.ResponseWriter, r *http.Request) {
-	log.Println(r)
 	update, err := tba.GetWebhookUpdate(r)
 	if err != nil {
 		w.Write([]byte("false"))
+		return
 	}
 
-	log.Println(update)
+	if update.Message.IsCommand() {
+		fmt.Println(update.Message.CommandArguments())
+	} else {
+		f, err := os.Open(*helpFile)
+		if err != nil {
+			w.Write([]byte("false"))
+			return
+		}
+
+		b, err := ioutil.ReadAll(f)
+		if err != nil {
+			w.Write([]byte("false"))
+			return
+		}
+
+		msg := tba.NewMessage(update.Message.Chat.ID, string(b))
+		bot.Send(msg)
+	}
 }
+
+func handleCommand()
