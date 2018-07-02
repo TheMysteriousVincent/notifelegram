@@ -84,6 +84,11 @@ func handleTelegramWebhook(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if update.Message.MessageID <= 0 {
+		w.Write([]byte("false"))
+		return
+	}
+
 	if update.Message.IsCommand() {
 	} else {
 		fmt.Println(22)
