@@ -90,8 +90,13 @@ func handleTelegramWebhook(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if update.Message.IsCommand() {
+		cmds, _ := update.Message.GetCommands()
+
+		for _, cmd := range *cmds {
+			fmt.Println(cmd.Name)
+			fmt.Println(cmd.Arguments)
+		}
 	} else {
-		fmt.Println(22)
 		f, err := os.Open(*helpFile)
 		if err != nil {
 			w.Write([]byte("false"))
