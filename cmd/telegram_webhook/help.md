@@ -1,5 +1,0 @@
-*Hey du!*
-
-`TestCode`
-
-/testCommand

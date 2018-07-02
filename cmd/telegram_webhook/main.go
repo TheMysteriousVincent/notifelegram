@@ -32,6 +32,8 @@ var (
 	helpFile         = flagenv.String("helpFile", "help.md", "This is the default help page. Will be displayed everytime if a entered command was unknown or the message was no command")
 	defaultParseMode = flagenv.String("default-msg-parse-mode", "Markdown", "The parse mode of a message to send (help page and templates). Can be Markdown or HTML as mentioned in https://core.telegram.org/bots/api#sendmessage")
 	gitlabKey        = flagenv.String("gitlab-api-key", "", "The GitLab server API key")
+	gitlabBaseURL    = flagenv.String("gitlab-base-url", "", "The GitLab API base url")
+	helpContent      string
 	gitlabClient     *gitlab.Client
 	bot              *tba.BotAPI
 )
@@ -40,29 +42,15 @@ func main() {
 	flagenv.Parse()
 
 	gitlabClient = gitlab.NewClient(nil, *gitlabKey)
-	gitlabClient.SetBaseURL("https://gitlab.allgameplay.de/api/v4/")
+	gitlabClient.SetBaseURL(*gitlabBaseURL)
 
 	var err error
 	bot, err = tba.NewBotAPI(*apiKey)
 	if err != nil {
 		log.Fatal(err)
 	}
-	bot.Debug = true
 
-	_, err = bot.SetWebhook(
-		tba.NewWebhookWithCert(
-			fmt.Sprintf(
-				"https://%s:%d%s%s",
-				*webhookHost,
-				*webhookPort,
-				webhookPath,
-				bot.Token,
-			),
-			*certFile,
-		),
-	)
-
-	if err != nil {
+	if err := setWebhook(); err != nil {
 		log.Fatal(err)
 	}
 
@@ -76,6 +64,44 @@ func main() {
 		log.Fatal(err)
 	}
 }
+
+func setWebhook() error {
+	_, err := bot.SetWebhook(
+		tba.NewWebhookWithCert(
+			fmt.Sprintf(
+				"https://%s:%d%s%s",
+				*webhookHost,
+				*webhookPort,
+				webhookPath,
+				bot.Token,
+			),
+			*certFile,
+		),
+	)
+	return err
+}
+
+/*
+Currently available commands:
+notify:
+	add:
+		commit
+		issue:
+			mentioned:
+				<username>
+			assigned:
+				<username>
+	remove:
+		commit
+		issue:
+			mentioned:
+				<username>
+			assigned:
+				<username>
+	list:
+		-> List of all active notifys
+version:
+*/
 
 func handleTelegramWebhook(w http.ResponseWriter, r *http.Request) {
 	update, err := tba.GetWebhookUpdate(r)
