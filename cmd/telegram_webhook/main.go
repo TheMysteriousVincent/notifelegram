@@ -22,17 +22,18 @@ const (
 )
 
 var (
-	apiKey       = flagenv.String("telegram-bot-api-key", "", "This is your telegram bot-api-token")
-	webhookHost  = flagenv.String("webhook-host", "localhost", "The webhook host")
-	webhookPort  = flagenv.Int("webhook-port", 88, "The webhook port")
-	host         = flagenv.String("host", "0.0.0.0", "The host of the http server")
-	port         = flagenv.Int("port", 88, "The port of the http server")
-	certFile     = flagenv.String("cert-file", "", "The certfile to establish a secure connection")
-	keyFile      = flagenv.String("key-file", "", "The keyfile to establish a secure connection")
-	helpFile     = flagenv.String("helpFile", "help.html", "This is the default help page. Will be displayed everytime if a entered command was unknown or the message was no command")
-	gitlabKey    = flagenv.String("gitlab-api-key", "", "The GitLab server API key")
-	gitlabClient *gitlab.Client
-	bot          *tba.BotAPI
+	apiKey           = flagenv.String("telegram-bot-api-key", "", "This is your telegram bot-api-token")
+	webhookHost      = flagenv.String("webhook-host", "localhost", "The webhook host")
+	webhookPort      = flagenv.Int("webhook-port", 88, "The webhook port")
+	host             = flagenv.String("host", "0.0.0.0", "The host of the http server")
+	port             = flagenv.Int("port", 88, "The port of the http server")
+	certFile         = flagenv.String("cert-file", "", "The certfile to establish a secure connection")
+	keyFile          = flagenv.String("key-file", "", "The keyfile to establish a secure connection")
+	helpFile         = flagenv.String("helpFile", "help.md", "This is the default help page. Will be displayed everytime if a entered command was unknown or the message was no command")
+	defaultParseMode = flagenv.String("default-msg-parse-mode", "Markdown", "The parse mode of a message to send (help page and templates). Can be Markdown or HTML as mentioned in https://core.telegram.org/bots/api#sendmessage")
+	gitlabKey        = flagenv.String("gitlab-api-key", "", "The GitLab server API key")
+	gitlabClient     *gitlab.Client
+	bot              *tba.BotAPI
 )
 
 func main() {
@@ -99,8 +100,7 @@ func handleTelegramWebhook(w http.ResponseWriter, r *http.Request) {
 		}
 
 		msg := tba.NewMessage(update.Message.Chat.ID, string(b))
+		msg.ParseMode = *defaultParseMode
 		bot.Send(msg)
 	}
 }
-
-func handleCommand()
