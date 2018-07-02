@@ -40,7 +40,7 @@ func main() {
 	_, err = bot.SetWebhook(
 		tba.NewWebhookWithCert(
 			fmt.Sprintf(
-				"https://%s:%d/%s%s",
+				"https://%s:%d%s%s",
 				*webhookHost,
 				*webhookPort,
 				webhookPath,
@@ -59,11 +59,9 @@ func main() {
 	r.Methods("POST").Path(webhookPath + bot.Token).Name("TelegramWebhookHandler").HandlerFunc(handleTelegramWebhook)
 	n.UseHandler(r)
 
-	updates := bot.ListenForWebhook("/" + bot.Token)
-	go http.ListenAndServeTLS("0.0.0.0:88", "cert.pem", "key.pem", nil)
-
-	for update := range updates {
-		log.Printf("%+v\n", update)
+	err = http.ListenAndServeTLS(fmt.Sprintf("%s:%d", *host, *port), *certFile, *keyFile, n)
+	if err != nil {
+		log.Fatal(err)
 	}
 }
 
