@@ -122,6 +122,7 @@ func handleTelegramWebhook(w http.ResponseWriter, r *http.Request) {
 				msg.Text = err.Error()
 				break
 			}
+			msg.Text = tmpBuf.String()
 		}
 		bot.Send(msg)
 	} else {
