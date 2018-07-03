@@ -105,6 +105,9 @@ func handleTelegramWebhook(w http.ResponseWriter, r *http.Request) {
 		msg := tgbotapi.NewMessage(update.Message.Chat.ID, tmpBuf.String())
 		msg.ReplyToMessageID = update.Message.MessageID
 		msg.ParseMode = *defaultParseMode
+		msg.ReplyMarkup = tgbotapi.ForceReply{
+			ForceReply: true,
+		}
 		bot.Send(msg)
 	} else {
 		f, err := os.Open(*helpFile)
