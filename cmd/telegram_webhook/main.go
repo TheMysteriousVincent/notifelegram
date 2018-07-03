@@ -181,4 +181,6 @@ func handleTelegramWebhook(w http.ResponseWriter, r *http.Request) {
 		msg.ParseMode = *defaultParseMode
 		bot.Send(msg)
 	}
+
+	w.Write([]byte("true"))
 }
