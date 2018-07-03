@@ -2,12 +2,12 @@ package main
 
 import (
 	"bytes"
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
-	"os"
 
 	"github.com/gorilla/mux"
 	gitlab "github.com/xanzy/go-gitlab"
@@ -35,9 +35,15 @@ var (
 	defaultParseMode = flagenv.String("default-msg-parse-mode", "Markdown", "The parse mode of a message to send (help page and templates). Can be Markdown or HTML as mentioned in https://core.telegram.org/bots/api#sendmessage")
 	gitlabKey        = flagenv.String("gitlab-api-key", "", "The GitLab server API key")
 	gitlabBaseURL    = flagenv.String("gitlab-base-url", "", "The GitLab API base url")
+	dbHost           = flagenv.String("dbHost", "localhost", "The default database host")
+	dbPort           = flagenv.Int("dbPort", 5432, "The default database port")
+	dbUser           = flagenv.String("dbUser", "notifier", "The default database username")
+	dbPass           = flagenv.String("dbPass", "1234", "The default database password")
+	dbName           = flagenv.String("dbName", "notifier", "The default database name")
 	helpContent      string
 	gitlabClient     *gitlab.Client
 	bot              *tgbotapi.BotAPI
+	sqlCon           *sql.DB
 )
 
 func main() {
@@ -57,6 +63,18 @@ func main() {
 	}
 
 	if err := parseTemplates(); err != nil {
+		log.Fatal(err)
+	}
+
+	sqlCon, err = sql.Open("postgres", fmt.Sprintf(
+		"postgres://%s:%s@%s:%d/%s?sslmode=disable",
+		*dbUser,
+		*dbPass,
+		*dbHost,
+		*dbPort,
+		*dbName,
+	))
+	if err != nil {
 		log.Fatal(err)
 	}
 
@@ -90,19 +108,33 @@ func setWebhook() error {
 func handleTelegramWebhook(w http.ResponseWriter, r *http.Request) {
 	update, err := getWebhookUpdate(r)
 	if err != nil {
-		w.Write([]byte("false"))
 		return
 	}
 
 	if update.Message == nil {
-		w.Write([]byte("false"))
 		return
 	}
 
 	if update.Message.IsCommand() {
 		msg := tgbotapi.NewMessage(update.Message.Chat.ID, "")
+		msg.ParseMode = *defaultParseMode
 		switch update.Message.Command() {
 		case "enableCommits":
+			var nid int
+			if err := sqlCon.QueryRow(
+				"INSERT INTO users (type, uid) SELECT 'commit', $1 WHERE NOT EXISTS (SELECT nid FROM users WHERE type = 'commit' AND uid = $2) RETURNING nid",
+				update.Message.From.ID,
+				update.Message.From.ID,
+			).Scan(&nid); err != nil {
+				msg.Text = err.Error()
+				break
+			}
+
+			if nid > 0 {
+				msg.Text = "Commits are already enabled."
+				break
+			}
+
 			msg.Text = "Enabled commit events."
 		case "disableCommits":
 			msg.Text = "Disabled commit events."
@@ -126,24 +158,17 @@ func handleTelegramWebhook(w http.ResponseWriter, r *http.Request) {
 		}
 		bot.Send(msg)
 	} else {
-		f, err := os.Open(*helpFile)
-		if err != nil {
-			w.Write([]byte("false"))
-			return
-		}
-
-		b, err := ioutil.ReadAll(f)
-		if err != nil {
-			w.Write([]byte("false"))
-			return
-		}
-
-		msg := tgbotapi.NewMessage(update.Message.Chat.ID, string(b))
+		msg := tgbotapi.NewMessage(update.Message.Chat.ID, "")
 		msg.ParseMode = *defaultParseMode
+		var tmpBuf bytes.Buffer
+		err := parsedTemplateNotifyMessage.Execute(&tmpBuf, update.Message.Chat)
+		if err != nil {
+			msg.Text = err.Error()
+		} else {
+			msg.Text = tmpBuf.String()
+		}
 		bot.Send(msg)
 	}
-
-	w.Write([]byte("true"))
 }
 
 func getWebhookUpdate(r *http.Request) (*tgbotapi.Update, error) {
