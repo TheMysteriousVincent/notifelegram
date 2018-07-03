@@ -101,6 +101,10 @@ notify:
 	list:
 		-> List of all active notifys
 version:
+
+
+PSQL Table for notifies:
+nid(serial primary key), uid(int), notifier (varchar(256)), notfier_value (text)
 */
 
 func handleTelegramWebhook(w http.ResponseWriter, r *http.Request) {
@@ -119,8 +123,51 @@ func handleTelegramWebhook(w http.ResponseWriter, r *http.Request) {
 		cmds, _ := update.Message.GetCommands()
 
 		for _, cmd := range *cmds {
-			fmt.Println(cmd.Name)
-			fmt.Println(cmd.Arguments)
+			switch cmd.Name {
+			case "notify":
+				if len(cmd.Arguments) > 0 {
+					switch cmd.Arguments[0] {
+					case "add":
+						if len(cmd.Arguments) > 1 {
+							switch cmd.Arguments[1] {
+							case "commit":
+								handleAddCommitNotify()
+							case "issue":
+								if len(cmd.Arguments) > 2 {
+									switch cmd.Arguments[2] {
+									case "mentioned":
+										if len(cmd.Arguments) > 3 {
+										}
+									case "assigned":
+										if len(cmd.Arguments) > 3 {
+
+										}
+									}
+								}
+							}
+						}
+					case "remove":
+						if len(cmd.Arguments) > 1 {
+							switch cmd.Arguments[1] {
+							case "commit":
+							case "issue":
+								if len(cmd.Arguments) > 2 {
+									switch cmd.Arguments[2] {
+									case "mentioned":
+										if len(cmd.Arguments) > 3 {
+										}
+									case "assigned":
+										if len(cmd.Arguments) > 3 {
+
+										}
+									}
+								}
+							}
+						}
+					}
+				}
+			case "version":
+			}
 		}
 	} else {
 		f, err := os.Open(*helpFile)
@@ -139,4 +186,8 @@ func handleTelegramWebhook(w http.ResponseWriter, r *http.Request) {
 		msg.ParseMode = *defaultParseMode
 		bot.Send(msg)
 	}
+}
+
+func handleAddCommitNotify() error {
+
 }
