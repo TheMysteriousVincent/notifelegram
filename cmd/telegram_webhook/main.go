@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -105,17 +106,24 @@ func handleTelegramWebhook(w http.ResponseWriter, r *http.Request) {
 			msg.Text = "Enabled commit events."
 		case "disableCommits":
 			msg.Text = "Disabled commit events."
-		case "addIssueMentions":
+		case "addIssueMention":
 			username := update.Message.CommandArguments()
 			msg.Text = fmt.Sprintf("Added issue mentions for user '%s'", username)
-		case "removeIssueMentions":
+		case "removeIssueMention":
 			username := update.Message.CommandArguments()
 			msg.Text = fmt.Sprintf("Removed issue mentions for user '%s'", username)
 		case "list":
 		case "version":
 			msg.Text = fmt.Sprintf("Version: %s", version)
 		default:
+			var tmpBuf bytes.Buffer
+			err := parsedTemplateNotifyMessage.Execute(&tmpBuf, update.Message.Chat)
+			if err != nil {
+				msg.Text = err.Error()
+				break
+			}
 		}
+		bot.Send(msg)
 	} else {
 		f, err := os.Open(*helpFile)
 		if err != nil {
