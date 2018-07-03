@@ -132,7 +132,7 @@ func createCommandHandler() *commands.CommandHandler {
 
 func handleNotify(msg *tba.Message, vars []string) error {
 	var tmpBuf bytes.Buffer
-	if err := parsedTemplateNotifyMessage.Execute(&tmpBuf, msg.Contact); err != nil {
+	if err := parsedTemplateNotifyMessage.Execute(&tmpBuf, msg.Chat); err != nil {
 		return err
 	}
 
