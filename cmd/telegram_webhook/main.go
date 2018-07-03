@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -14,6 +15,7 @@ import (
 
 	"github.com/urfave/negroni"
 
+	"github.com/TheMysteriousVincent/notifelegram/pkg/telegram_webhook/commands"
 	tba "github.com/TheMysteriousVincent/telegram-bot-api"
 )
 
@@ -36,6 +38,7 @@ var (
 	helpContent      string
 	gitlabClient     *gitlab.Client
 	bot              *tba.BotAPI
+	cmdHndl          *commands.CommandHandler
 )
 
 func main() {
@@ -51,6 +54,12 @@ func main() {
 	}
 
 	if err := setWebhook(); err != nil {
+		log.Fatal(err)
+	}
+
+	cmdHndl = createCommandHandler()
+
+	if err := parseTemplates(); err != nil {
 		log.Fatal(err)
 	}
 
@@ -106,6 +115,33 @@ version:
 PSQL Table for notifies:
 nid(serial primary key), uid(int), notifier (varchar(256)), notfier_value (text)
 */
+func createCommandHandler() *commands.CommandHandler {
+	ch := commands.NewCommandHandler()
+	ch.AddCommand("notify").HandlerFunc(handleNotify)
+	ch.AddCommand("notify").AddSubCommand("add").AddSubCommand("commit").HandlerFunc(nil)
+	ch.AddCommand("notify").AddSubCommand("add").AddSubCommand("issue").AddSubCommand("mentioned").HandlerFunc(nil)
+	ch.AddCommand("notify").AddSubCommand("add").AddSubCommand("issue").AddSubCommand("assigned").HandlerFunc(nil)
+	ch.AddCommand("notify").AddSubCommand("remove").AddSubCommand("commit").HandlerFunc(nil)
+	ch.AddCommand("notify").AddSubCommand("remove").AddSubCommand("issue").AddSubCommand("mentioned").HandlerFunc(nil)
+	ch.AddCommand("notify").AddSubCommand("remove").AddSubCommand("issue").AddSubCommand("assigned").HandlerFunc(nil)
+	ch.AddCommand("notify").AddSubCommand("list").HandlerFunc(nil)
+	ch.AddCommand("version").HandlerFunc(nil)
+
+	return ch
+}
+
+func handleNotify(msg *tba.Message, vars []string) error {
+	var tmpBuf bytes.Buffer
+	if err := parsedTemplateNotifyMessage.Execute(&tmpBuf, msg.Contact); err != nil {
+		return err
+	}
+
+	if _, err := bot.Send(tba.NewMessage(msg.Chat.ID, tmpBuf.String())); err != nil {
+		return err
+	}
+
+	return nil
+}
 
 func handleTelegramWebhook(w http.ResponseWriter, r *http.Request) {
 	update, err := tba.GetWebhookUpdate(r)
@@ -121,52 +157,11 @@ func handleTelegramWebhook(w http.ResponseWriter, r *http.Request) {
 
 	if update.Message.IsCommand() {
 		cmds, _ := update.Message.GetCommands()
+		ce := cmdHndl.NewCommandExecutor(update.Message, cmds)
 
-		for _, cmd := range *cmds {
-			switch cmd.Name {
-			case "notify":
-				if len(cmd.Arguments) > 0 {
-					switch cmd.Arguments[0] {
-					case "add":
-						if len(cmd.Arguments) > 1 {
-							switch cmd.Arguments[1] {
-							case "commit":
-								handleAddCommitNotify()
-							case "issue":
-								if len(cmd.Arguments) > 2 {
-									switch cmd.Arguments[2] {
-									case "mentioned":
-										if len(cmd.Arguments) > 3 {
-										}
-									case "assigned":
-										if len(cmd.Arguments) > 3 {
-
-										}
-									}
-								}
-							}
-						}
-					case "remove":
-						if len(cmd.Arguments) > 1 {
-							switch cmd.Arguments[1] {
-							case "commit":
-							case "issue":
-								if len(cmd.Arguments) > 2 {
-									switch cmd.Arguments[2] {
-									case "mentioned":
-										if len(cmd.Arguments) > 3 {
-										}
-									case "assigned":
-										if len(cmd.Arguments) > 3 {
-
-										}
-									}
-								}
-							}
-						}
-					}
-				}
-			case "version":
+		for ce.Next() {
+			if err := ce.Execute(); err != nil {
+				bot.Send(tba.NewMessage(update.Message.Chat.ID, err.Error()))
 			}
 		}
 	} else {
@@ -186,8 +181,4 @@ func handleTelegramWebhook(w http.ResponseWriter, r *http.Request) {
 		msg.ParseMode = *defaultParseMode
 		bot.Send(msg)
 	}
-}
-
-func handleAddCommitNotify() error {
-
 }
