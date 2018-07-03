@@ -16,9 +16,15 @@ func TestExec(t *testing.T) {
 	}
 
 	cmdHndl := NewCommandHandler()
-	cmdHndl.AddCommand("test").AddSubCommand("subcmd1").AddSubCommand("subcmd2").HandlerFunc(func(vars []string) error {
+	cmdHndl.AddCommand("test").AddSubCommand("subcmd1").AddSubCommand("subcmd2").HandlerFunc(func(msg *tba.Message, vars []string) error {
 		fmt.Println(vars)
 		return nil
 	})
-	cmdHndl.Exec(cmds)
+	ce := cmdHndl.NewCommandExecutor(&tba.Message{}, cmds)
+	for ce.Next() {
+		err := ce.Execute()
+		if err != nil {
+			fmt.Println(err.Error())
+		}
+	}
 }

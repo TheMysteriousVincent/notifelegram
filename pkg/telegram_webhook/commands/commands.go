@@ -114,11 +114,8 @@ func (ce *CommandExecutor) Execute() error {
 	if r == nil {
 		return ErrNoEndpoint
 	}
-	if r.hndl == nil {
-		return ErrNoEndpoint
-	}
 
-	var i int
+	var i = -1
 	var arg string
 	for i, arg = range cmd.Arguments {
 		for k, sR := range r.subroutes {
@@ -127,6 +124,10 @@ func (ce *CommandExecutor) Execute() error {
 				break
 			}
 		}
+	}
+
+	if r.hndl == nil && i == -1 {
+		return ErrNoEndpoint
 	}
 
 	return r.hndl(ce.msg, cmd.Arguments[i-1:len(cmd.Arguments)])
