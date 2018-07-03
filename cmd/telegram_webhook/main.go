@@ -117,6 +117,7 @@ nid(serial primary key), uid(int), notifier (varchar(256)), notfier_value (text)
 */
 func createCommandHandler() *commands.CommandHandler {
 	ch := commands.NewCommandHandler()
+	ch.AddCommand("start").HandlerFunc(handleNotify)
 	ch.AddCommand("notify").HandlerFunc(handleNotify)
 	ch.AddCommand("notify").AddSubCommand("add").AddSubCommand("commit").HandlerFunc(nil)
 	ch.AddCommand("notify").AddSubCommand("add").AddSubCommand("issue").AddSubCommand("mentioned").HandlerFunc(nil)
