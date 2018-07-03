@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -14,9 +15,7 @@ import (
 	"github.com/playnet-public/flagenv"
 
 	"github.com/urfave/negroni"
-
-	"github.com/TheMysteriousVincent/notifelegram/pkg/telegram_webhook/commands"
-	tba "github.com/TheMysteriousVincent/telegram-bot-api"
+	"gopkg.in/telegram-bot-api.v4"
 )
 
 const (
@@ -37,8 +36,7 @@ var (
 	gitlabBaseURL    = flagenv.String("gitlab-base-url", "", "The GitLab API base url")
 	helpContent      string
 	gitlabClient     *gitlab.Client
-	bot              *tba.BotAPI
-	cmdHndl          *commands.CommandHandler
+	bot              *tgbotapi.BotAPI
 )
 
 func main() {
@@ -48,7 +46,7 @@ func main() {
 	gitlabClient.SetBaseURL(*gitlabBaseURL)
 
 	var err error
-	bot, err = tba.NewBotAPI(*apiKey)
+	bot, err = tgbotapi.NewBotAPI(*apiKey)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -56,8 +54,6 @@ func main() {
 	if err := setWebhook(); err != nil {
 		log.Fatal(err)
 	}
-
-	cmdHndl = createCommandHandler()
 
 	if err := parseTemplates(); err != nil {
 		log.Fatal(err)
@@ -76,7 +72,7 @@ func main() {
 
 func setWebhook() error {
 	_, err := bot.SetWebhook(
-		tba.NewWebhookWithCert(
+		tgbotapi.NewWebhookWithCert(
 			fmt.Sprintf(
 				"https://%s:%d%s%s",
 				*webhookHost,
@@ -90,62 +86,8 @@ func setWebhook() error {
 	return err
 }
 
-/*
-Currently available commands:
-notify:
-	add:
-		commit
-		issue:
-			mentioned:
-				<username>
-			assigned:
-				<username>
-	remove:
-		commit
-		issue:
-			mentioned:
-				<username>
-			assigned:
-				<username>
-	list:
-		-> List of all active notifys
-version:
-
-
-PSQL Table for notifies:
-nid(serial primary key), uid(int), notifier (varchar(256)), notfier_value (text)
-*/
-func createCommandHandler() *commands.CommandHandler {
-	ch := commands.NewCommandHandler()
-	ch.AddCommand("start").HandlerFunc(handleNotify)
-	ch.AddCommand("notify").HandlerFunc(handleNotify)
-	ch.AddCommand("notify").AddSubCommand("add").AddSubCommand("commit").HandlerFunc(nil)
-	ch.AddCommand("notify").AddSubCommand("add").AddSubCommand("issue").AddSubCommand("mentioned").HandlerFunc(nil)
-	ch.AddCommand("notify").AddSubCommand("add").AddSubCommand("issue").AddSubCommand("assigned").HandlerFunc(nil)
-	ch.AddCommand("notify").AddSubCommand("remove").AddSubCommand("commit").HandlerFunc(nil)
-	ch.AddCommand("notify").AddSubCommand("remove").AddSubCommand("issue").AddSubCommand("mentioned").HandlerFunc(nil)
-	ch.AddCommand("notify").AddSubCommand("remove").AddSubCommand("issue").AddSubCommand("assigned").HandlerFunc(nil)
-	ch.AddCommand("notify").AddSubCommand("list").HandlerFunc(nil)
-	ch.AddCommand("version").HandlerFunc(nil)
-
-	return ch
-}
-
-func handleNotify(msg *tba.Message, vars []string) error {
-	var tmpBuf bytes.Buffer
-	if err := parsedTemplateNotifyMessage.Execute(&tmpBuf, msg.Chat); err != nil {
-		return err
-	}
-
-	if _, err := bot.Send(tba.NewMessage(msg.Chat.ID, tmpBuf.String())); err != nil {
-		return err
-	}
-
-	return nil
-}
-
 func handleTelegramWebhook(w http.ResponseWriter, r *http.Request) {
-	update, err := tba.GetWebhookUpdate(r)
+	update, err := getWebhookUpdate(r)
 	if err != nil {
 		w.Write([]byte("false"))
 		return
@@ -157,14 +99,13 @@ func handleTelegramWebhook(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if update.Message.IsCommand() {
-		cmds, _ := update.Message.GetCommands()
-		ce := cmdHndl.NewCommandExecutor(update.Message, cmds)
+		var tmpBuf bytes.Buffer
+		parsedTemplateNotifyMessage.Execute(&tmpBuf, update.Message.Chat)
 
-		for ce.Next() {
-			if err := ce.Execute(); err != nil {
-				bot.Send(tba.NewMessage(update.Message.Chat.ID, err.Error()))
-			}
-		}
+		msg := tgbotapi.NewMessage(update.Message.Chat.ID, tmpBuf.String())
+		msg.ReplyToMessageID = update.Message.MessageID
+		msg.ParseMode = *defaultParseMode
+		bot.Send(msg)
 	} else {
 		f, err := os.Open(*helpFile)
 		if err != nil {
@@ -178,10 +119,21 @@ func handleTelegramWebhook(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		msg := tba.NewMessage(update.Message.Chat.ID, string(b))
+		msg := tgbotapi.NewMessage(update.Message.Chat.ID, string(b))
 		msg.ParseMode = *defaultParseMode
 		bot.Send(msg)
 	}
 
 	w.Write([]byte("true"))
+}
+
+func getWebhookUpdate(r *http.Request) (*tgbotapi.Update, error) {
+	b, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	var update tgbotapi.Update
+	err = json.Unmarshal(b, &update)
+	return &update, err
 }
