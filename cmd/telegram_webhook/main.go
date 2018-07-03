@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -19,6 +18,7 @@ import (
 )
 
 const (
+	version     = "v0.1"
 	webhookPath = "/v1/webhooks/telegram/"
 )
 
@@ -99,16 +99,23 @@ func handleTelegramWebhook(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if update.Message.IsCommand() {
-		var tmpBuf bytes.Buffer
-		parsedTemplateNotifyMessage.Execute(&tmpBuf, update.Message.Chat)
-
-		msg := tgbotapi.NewMessage(update.Message.Chat.ID, tmpBuf.String())
-		msg.ReplyToMessageID = update.Message.MessageID
-		msg.ParseMode = *defaultParseMode
-		msg.ReplyMarkup = tgbotapi.ForceReply{
-			ForceReply: true,
+		msg := tgbotapi.NewMessage(update.Message.Chat.ID, "")
+		switch update.Message.Command() {
+		case "enableCommits":
+			msg.Text = "Enabled commit events."
+		case "disableCommits":
+			msg.Text = "Disabled commit events."
+		case "addIssueMentions":
+			username := update.Message.CommandArguments()
+			msg.Text = fmt.Sprintf("Added issue mentions for user '%s'", username)
+		case "removeIssueMentions":
+			username := update.Message.CommandArguments()
+			msg.Text = fmt.Sprintf("Removed issue mentions for user '%s'", username)
+		case "list":
+		case "version":
+			msg.Text = fmt.Sprintf("Version: %s", version)
+		default:
 		}
-		bot.Send(msg)
 	} else {
 		f, err := os.Open(*helpFile)
 		if err != nil {
