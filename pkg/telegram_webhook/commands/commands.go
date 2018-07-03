@@ -9,7 +9,7 @@ import (
 
 var (
 	//ErrNoEndpoint is thrown when a route exists and there is no handler
-	ErrNoEndpoint = errors.New("tehere exist no command handling endpoint")
+	ErrNoEndpoint = errors.New("there exist no command handling endpoint")
 )
 
 //CommandRoutes represents a slice of CommandRoute
@@ -97,7 +97,7 @@ func (ch *CommandHandler) NewCommandExecutor(msg *tba.Message, cmds *tba.Command
 
 //Next checks if the
 func (ce *CommandExecutor) Next() bool {
-	return ce.index < len(*ce.cmds)-1
+	return ce.index < len(*ce.cmds)
 }
 
 //Execute executes the next command in queue
