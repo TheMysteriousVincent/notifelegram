@@ -115,12 +115,14 @@ func (ce *CommandExecutor) Execute() error {
 		return ErrNoEndpoint
 	}
 
-	var i = -1
+	var i, tmpI int
 	var arg string
-	for i, arg = range cmd.Arguments {
+	i = -1
+	for tmpI, arg = range cmd.Arguments {
 		for k, sR := range r.subroutes {
 			if k == arg {
 				r = sR
+				i = tmpI
 				break
 			}
 		}
@@ -130,7 +132,7 @@ func (ce *CommandExecutor) Execute() error {
 		return ErrNoEndpoint
 	}
 
-	return r.hndl(ce.msg, cmd.Arguments[i-1:len(cmd.Arguments)])
+	return r.hndl(ce.msg, cmd.Arguments[i+1:len(cmd.Arguments)])
 }
 
 func (ce *CommandExecutor) increaseIndex() {

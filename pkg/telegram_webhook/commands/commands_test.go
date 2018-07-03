@@ -11,7 +11,7 @@ func TestExec(t *testing.T) {
 	cmds := &tba.Commands{
 		tba.Command{
 			Name:      "test",
-			Arguments: []string{"subcmd1", "subcmd2", "testVar1", "testVar2"},
+			Arguments: []string{"subcmd1", "subcmd2", "var", "var", "var", "var"},
 		},
 	}
 
