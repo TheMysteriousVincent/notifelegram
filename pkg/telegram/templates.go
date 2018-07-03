@@ -1,8 +1,21 @@
-package main
+package telegram
 
-import "html/template"
+import (
+	"html/template"
+	"log"
+)
 
-var templateNotifyMessage = `
+func init() {
+	var err error
+	ParsedTemplateHelp, err = template.New("TemplateHelp").Parse(templateHelp)
+	if err != nil {
+		log.Fatal(err)
+	}
+}
+
+var (
+	ParsedTemplateHelp *template.Template
+	templateHelp       = `
 **Hello {{.UserName}}!**
 I see you are trying to work with me.
 Let me help you by showing you a list of available commands:
@@ -23,14 +36,4 @@ Well, you can also display the current version - if you want to:
 
 Isn´t that helpful? Just try it out!
 `
-var parsedTemplateNotifyMessage *template.Template
-
-func parseTemplates() error {
-	var err error
-	parsedTemplateNotifyMessage, err = template.New("TemplateNotifyMessage").Parse(templateNotifyMessage)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
+)
