@@ -5,6 +5,8 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
+	"math"
+	"time"
 
 	gitlab "github.com/xanzy/go-gitlab"
 	"gopkg.in/telegram-bot-api.v4"
@@ -33,9 +35,9 @@ func (h *Handler) HandleEnableCommits(msg *tgbotapi.Message) {
 func (h *Handler) enableCommitsText(msg *tgbotapi.Message) string {
 	var nid int
 	if err := h.sqlConnection.QueryRow(
-		"INSERT INTO commits (uid) SELECT $1 WHERE NOT EXISTS (SELECT commitId FROM notifications WHERE uid = $2) RETURNING commitId",
-		msg.From.ID,
-		msg.From.ID,
+		"INSERT INTO commits (chatId) SELECT $1 WHERE NOT EXISTS (SELECT commitId FROM commits WHERE chatId = $2) RETURNING commitId",
+		msg.Chat.ID,
+		msg.Chat.ID,
 	).Scan(&nid); err != nil {
 		if err == sql.ErrNoRows {
 			return "Commits are already enabled."
@@ -52,8 +54,8 @@ func (h *Handler) HandleDisableCommits(msg *tgbotapi.Message) {
 
 func (h *Handler) disableCommitsText(msg *tgbotapi.Message) string {
 	res, err := h.sqlConnection.Exec(
-		"DELETE FROM commits WHERE uid = $1",
-		msg.From.ID,
+		"DELETE FROM commits WHERE chatId = $1",
+		msg.Chat.ID,
 	)
 	if err != nil {
 		return err.Error()
@@ -102,11 +104,11 @@ func (h *Handler) addMentions(msg *tgbotapi.Message) string {
 
 	var mentionID int
 	if err := h.sqlConnection.QueryRow(
-		"INSERT INTO mentions (uid, gitlabUserId) SELECT $1, $2 WHERE NOT EXISTS (SELECT mentionId FROM mentions WHERE gitlabUserId = $3 AND uid = $4) RETURNING mentionId",
-		msg.From.ID,
-		uid,
-		uid,
-		msg.From.ID,
+		"INSERT INTO mentions (chatId, gitlabUsername) SELECT $1, $2 WHERE NOT EXISTS (SELECT mentionId FROM mentions WHERE gitlabUsername = $3 AND chatId = $4) RETURNING mentionId",
+		msg.Chat.ID,
+		username,
+		username,
+		msg.Chat.ID,
 	).Scan(&mentionID); err != nil {
 		if err == sql.ErrNoRows {
 			return "Mentions of that user are already subscribed."
@@ -147,9 +149,9 @@ func (h *Handler) removeMentionsText(msg *tgbotapi.Message) string {
 	}
 
 	res, err := h.sqlConnection.Exec(
-		"DELETE FROM mentions WHERE uid = $1 AND gitlabUserId = $2",
-		msg.From.ID,
-		uid,
+		"DELETE FROM mentions WHERE chatId = $1 AND gitlabUsername = $2",
+		msg.Chat.ID,
+		username,
 	)
 	if err != nil {
 		return err.Error()
@@ -168,9 +170,82 @@ func (h *Handler) removeMentionsText(msg *tgbotapi.Message) string {
 }
 
 func (h *Handler) HandleListMentions(msg *tgbotapi.Message) {
+	nMsg := tgbotapi.NewMessage(msg.Chat.ID, h.listMentionsText(msg))
+	nMsg.ParseMode = "Markdown"
+	h.bot.Send(nMsg)
+}
+
+type Mention struct {
+	Username string
+	DaysAgo  int
+}
+
+func (h *Handler) listMentionsText(msg *tgbotapi.Message) string {
+	rows, err := h.sqlConnection.Query(
+		"SELECT timestamp_add, gitlabUsername FROM mentions WHERE chatId = $1",
+		msg.Chat.ID,
+	)
+	if err != nil {
+		if err != sql.ErrNoRows {
+			return err.Error()
+		}
+	}
+
+	var arr []Mention
+	for rows.Next() {
+		var gitlabUsername, timestamp_add string
+
+		err := rows.Scan(
+			&timestamp_add,
+			&gitlabUsername,
+		)
+		if err != nil {
+			log.Println(err.Error())
+			continue
+		}
+
+		t, err := time.Parse(time.RFC3339Nano, timestamp_add)
+		if err != nil {
+			log.Println(err.Error())
+			continue
+		}
+
+		arr = append(arr, Mention{
+			Username: gitlabUsername,
+			DaysAgo:  int(math.Max(time.Since(t).Hours()/24, 1)),
+		})
+	}
+
+	var tmpBuf bytes.Buffer
+	if err := ParsedTemplateListMentions.Execute(&tmpBuf, arr); err != nil {
+		return err.Error()
+	}
+
+	return tmpBuf.String()
 }
 
 func (h *Handler) HandleCommitsEnabled(msg *tgbotapi.Message) {
+	h.bot.Send(tgbotapi.NewMessage(msg.Chat.ID, h.commitsText(msg)))
+}
+
+func (h *Handler) commitsText(msg *tgbotapi.Message) string {
+	res, err := h.sqlConnection.Exec(
+		"SELECT commitId FROM commits WHERE chatId = $1",
+		msg.Chat.ID,
+	)
+	if err != nil {
+		return "Commits are not subscribed."
+	}
+
+	r, err := res.RowsAffected()
+	if err != nil {
+		return "Commits are not subscribed."
+	}
+	if r != 1 {
+		return "Commits are not subscribed."
+	}
+
+	return "Commits are subscribed."
 }
 
 func (h *Handler) HandleVersion(msg *tgbotapi.Message) {

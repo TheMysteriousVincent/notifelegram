@@ -35,25 +35,23 @@ SET default_tablespace = '';
 SET default_with_oids = false;
 
 --
--- Name: notifications; Type: TABLE; Schema: public; Owner: notifier
+-- Name: commits; Type: TABLE; Schema: public; Owner: notifier
 --
 
-CREATE TABLE notifications (
-    nid integer NOT NULL,
-    type character varying(256) DEFAULT ''::character varying NOT NULL,
-    uid integer NOT NULL,
+CREATE TABLE commits (
+    commitid integer NOT NULL,
     timestamp_add timestamp with time zone DEFAULT now() NOT NULL,
-    value character varying(256) DEFAULT ''::character varying NOT NULL
+    "chatId" bigint DEFAULT 0 NOT NULL
 );
 
 
-ALTER TABLE notifications OWNER TO notifier;
+ALTER TABLE commits OWNER TO notifier;
 
 --
--- Name: notifications_nid_seq; Type: SEQUENCE; Schema: public; Owner: notifier
+-- Name: commits_commitid_seq; Type: SEQUENCE; Schema: public; Owner: notifier
 --
 
-CREATE SEQUENCE notifications_nid_seq
+CREATE SEQUENCE commits_commitid_seq
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE
@@ -61,43 +59,109 @@ CREATE SEQUENCE notifications_nid_seq
     CACHE 1;
 
 
-ALTER TABLE notifications_nid_seq OWNER TO notifier;
+ALTER TABLE commits_commitid_seq OWNER TO notifier;
 
 --
--- Name: notifications_nid_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: notifier
+-- Name: commits_commitid_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: notifier
 --
 
-ALTER SEQUENCE notifications_nid_seq OWNED BY notifications.nid;
-
-
---
--- Name: notifications nid; Type: DEFAULT; Schema: public; Owner: notifier
---
-
-ALTER TABLE ONLY notifications ALTER COLUMN nid SET DEFAULT nextval('notifications_nid_seq'::regclass);
+ALTER SEQUENCE commits_commitid_seq OWNED BY commits.commitid;
 
 
 --
--- Data for Name: notifications; Type: TABLE DATA; Schema: public; Owner: notifier
+-- Name: mentions; Type: TABLE; Schema: public; Owner: notifier
 --
 
-COPY notifications (nid, type, uid, timestamp_add, value) FROM stdin;
+CREATE TABLE mentions (
+    mentionid integer NOT NULL,
+    "chatId" bigint DEFAULT 0 NOT NULL,
+    timestamp_add timestamp with time zone DEFAULT now() NOT NULL,
+    gitlabusername character varying(256) DEFAULT ''::character varying NOT NULL
+);
+
+
+ALTER TABLE mentions OWNER TO notifier;
+
+--
+-- Name: mentions_mentionid_seq; Type: SEQUENCE; Schema: public; Owner: notifier
+--
+
+CREATE SEQUENCE mentions_mentionid_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE mentions_mentionid_seq OWNER TO notifier;
+
+--
+-- Name: mentions_mentionid_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: notifier
+--
+
+ALTER SEQUENCE mentions_mentionid_seq OWNED BY mentions.mentionid;
+
+
+--
+-- Name: commits commitid; Type: DEFAULT; Schema: public; Owner: notifier
+--
+
+ALTER TABLE ONLY commits ALTER COLUMN commitid SET DEFAULT nextval('commits_commitid_seq'::regclass);
+
+
+--
+-- Name: mentions mentionid; Type: DEFAULT; Schema: public; Owner: notifier
+--
+
+ALTER TABLE ONLY mentions ALTER COLUMN mentionid SET DEFAULT nextval('mentions_mentionid_seq'::regclass);
+
+
+--
+-- Data for Name: commits; Type: TABLE DATA; Schema: public; Owner: notifier
+--
+
+COPY commits (commitid, timestamp_add, "chatId") FROM stdin;
+1	2018-07-04 11:00:06.309049+02	406907138
 \.
 
 
 --
--- Name: notifications_nid_seq; Type: SEQUENCE SET; Schema: public; Owner: notifier
+-- Name: commits_commitid_seq; Type: SEQUENCE SET; Schema: public; Owner: notifier
 --
 
-SELECT pg_catalog.setval('notifications_nid_seq', 1, false);
+SELECT pg_catalog.setval('commits_commitid_seq', 1, true);
 
 
 --
--- Name: notifications notifications_pkey; Type: CONSTRAINT; Schema: public; Owner: notifier
+-- Data for Name: mentions; Type: TABLE DATA; Schema: public; Owner: notifier
 --
 
-ALTER TABLE ONLY notifications
-    ADD CONSTRAINT notifications_pkey PRIMARY KEY (nid);
+COPY mentions (mentionid, "chatId", timestamp_add, gitlabusername) FROM stdin;
+\.
+
+
+--
+-- Name: mentions_mentionid_seq; Type: SEQUENCE SET; Schema: public; Owner: notifier
+--
+
+SELECT pg_catalog.setval('mentions_mentionid_seq', 3, true);
+
+
+--
+-- Name: commits commits_pkey; Type: CONSTRAINT; Schema: public; Owner: notifier
+--
+
+ALTER TABLE ONLY commits
+    ADD CONSTRAINT commits_pkey PRIMARY KEY (commitid);
+
+
+--
+-- Name: mentions mentions_pkey; Type: CONSTRAINT; Schema: public; Owner: notifier
+--
+
+ALTER TABLE ONLY mentions
+    ADD CONSTRAINT mentions_pkey PRIMARY KEY (mentionid);
 
 
 --
