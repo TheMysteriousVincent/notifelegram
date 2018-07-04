@@ -15,14 +15,14 @@ SET client_min_messages = warning;
 SET row_security = off;
 
 --
--- Name: plpgsql; Type: EXTENSION; Schema: -; Owner: 
+-- Name: plpgsql; Type: EXTENSION; Schema: -; Owner: -
 --
 
 CREATE EXTENSION IF NOT EXISTS plpgsql WITH SCHEMA pg_catalog;
 
 
 --
--- Name: EXTENSION plpgsql; Type: COMMENT; Schema: -; Owner: 
+-- Name: EXTENSION plpgsql; Type: COMMENT; Schema: -; Owner: -
 --
 
 COMMENT ON EXTENSION plpgsql IS 'PL/pgSQL procedural language';
@@ -35,7 +35,7 @@ SET default_tablespace = '';
 SET default_with_oids = false;
 
 --
--- Name: commits; Type: TABLE; Schema: public; Owner: notifier
+-- Name: commits; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE commits (
@@ -45,10 +45,8 @@ CREATE TABLE commits (
 );
 
 
-ALTER TABLE commits OWNER TO notifier;
-
 --
--- Name: commits_commitid_seq; Type: SEQUENCE; Schema: public; Owner: notifier
+-- Name: commits_commitid_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
 CREATE SEQUENCE commits_commitid_seq
@@ -59,17 +57,15 @@ CREATE SEQUENCE commits_commitid_seq
     CACHE 1;
 
 
-ALTER TABLE commits_commitid_seq OWNER TO notifier;
-
 --
--- Name: commits_commitid_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: notifier
+-- Name: commits_commitid_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
 ALTER SEQUENCE commits_commitid_seq OWNED BY commits.commitid;
 
 
 --
--- Name: mentions; Type: TABLE; Schema: public; Owner: notifier
+-- Name: mentions; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE mentions (
@@ -80,10 +76,8 @@ CREATE TABLE mentions (
 );
 
 
-ALTER TABLE mentions OWNER TO notifier;
-
 --
--- Name: mentions_mentionid_seq; Type: SEQUENCE; Schema: public; Owner: notifier
+-- Name: mentions_mentionid_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
 CREATE SEQUENCE mentions_mentionid_seq
@@ -94,62 +88,29 @@ CREATE SEQUENCE mentions_mentionid_seq
     CACHE 1;
 
 
-ALTER TABLE mentions_mentionid_seq OWNER TO notifier;
-
 --
--- Name: mentions_mentionid_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: notifier
+-- Name: mentions_mentionid_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
 ALTER SEQUENCE mentions_mentionid_seq OWNED BY mentions.mentionid;
 
 
 --
--- Name: commits commitid; Type: DEFAULT; Schema: public; Owner: notifier
+-- Name: commits commitid; Type: DEFAULT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY commits ALTER COLUMN commitid SET DEFAULT nextval('commits_commitid_seq'::regclass);
 
 
 --
--- Name: mentions mentionid; Type: DEFAULT; Schema: public; Owner: notifier
+-- Name: mentions mentionid; Type: DEFAULT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY mentions ALTER COLUMN mentionid SET DEFAULT nextval('mentions_mentionid_seq'::regclass);
 
 
 --
--- Data for Name: commits; Type: TABLE DATA; Schema: public; Owner: notifier
---
-
-COPY commits (commitid, timestamp_add, "chatId") FROM stdin;
-1	2018-07-04 11:00:06.309049+02	406907138
-\.
-
-
---
--- Name: commits_commitid_seq; Type: SEQUENCE SET; Schema: public; Owner: notifier
---
-
-SELECT pg_catalog.setval('commits_commitid_seq', 1, true);
-
-
---
--- Data for Name: mentions; Type: TABLE DATA; Schema: public; Owner: notifier
---
-
-COPY mentions (mentionid, "chatId", timestamp_add, gitlabusername) FROM stdin;
-\.
-
-
---
--- Name: mentions_mentionid_seq; Type: SEQUENCE SET; Schema: public; Owner: notifier
---
-
-SELECT pg_catalog.setval('mentions_mentionid_seq', 3, true);
-
-
---
--- Name: commits commits_pkey; Type: CONSTRAINT; Schema: public; Owner: notifier
+-- Name: commits commits_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY commits
@@ -157,21 +118,11 @@ ALTER TABLE ONLY commits
 
 
 --
--- Name: mentions mentions_pkey; Type: CONSTRAINT; Schema: public; Owner: notifier
+-- Name: mentions mentions_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY mentions
     ADD CONSTRAINT mentions_pkey PRIMARY KEY (mentionid);
-
-
---
--- Name: public; Type: ACL; Schema: -; Owner: notifier
---
-
-REVOKE ALL ON SCHEMA public FROM postgres;
-REVOKE ALL ON SCHEMA public FROM PUBLIC;
-GRANT ALL ON SCHEMA public TO notifier;
-GRANT ALL ON SCHEMA public TO PUBLIC;
 
 
 --

@@ -32,7 +32,9 @@ var (
 func main() {
 	flagenv.Parse()
 
-	hook := gitlab.New(&gitlab.Config{})
+	hook := gitlab.New(&gitlab.Config{
+		Secret: *gitlabWebhookSecret,
+	})
 	hook.RegisterEvents(handleIssues, gitlab.IssuesEvents)
 	hook.RegisterEvents(handleComments, gitlab.CommentEvents)
 	hook.RegisterEvents(handleConfidentialIssues, gitlab.ConfidentialIssuesEvents)
