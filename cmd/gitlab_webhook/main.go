@@ -68,7 +68,7 @@ func handleIssues(payload interface{}, header webhooks.Header) {
 	pl := payload.(gitlab.IssueEventPayload)
 
 	rows, err := sqlConnection.Query(
-		"SELECT chatId FROM mentions WHERE gitlabUsername = $1",
+		"SELECT chatid FROM mentions WHERE gitlabUsername = $1",
 		pl.Assignee.Name,
 	)
 	if err != nil {
@@ -77,16 +77,16 @@ func handleIssues(payload interface{}, header webhooks.Header) {
 	}
 
 	for rows.Next() {
-		var chatId int64
-		if err := rows.Scan(&chatId); err != nil {
+		var chatID int64
+		if err := rows.Scan(&chatID); err != nil {
 			log.Println(err.Error())
 			return
 		}
-		if chatId <= 0 {
+		if chatID <= 0 {
 			continue
 		}
 
-		msg := tgbotapi.NewMessage(chatId, "Someone created an issue assigned to you")
+		msg := tgbotapi.NewMessage(chatID, "Someone created an issue assigned to you")
 		msg.ParseMode = "Markdown"
 		bot.Send(msg)
 	}

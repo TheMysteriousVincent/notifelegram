@@ -35,7 +35,7 @@ func (h *Handler) HandleEnableCommits(msg *tgbotapi.Message) {
 func (h *Handler) enableCommitsText(msg *tgbotapi.Message) string {
 	var nid int
 	if err := h.sqlConnection.QueryRow(
-		"INSERT INTO commits (chatId) SELECT $1 WHERE NOT EXISTS (SELECT commitId FROM commits WHERE chatId = $2) RETURNING commitId",
+		"INSERT INTO commits (chatid) SELECT $1 WHERE NOT EXISTS (SELECT commitId FROM commits WHERE chatid = $2) RETURNING commitId",
 		msg.Chat.ID,
 		msg.Chat.ID,
 	).Scan(&nid); err != nil {
@@ -54,7 +54,7 @@ func (h *Handler) HandleDisableCommits(msg *tgbotapi.Message) {
 
 func (h *Handler) disableCommitsText(msg *tgbotapi.Message) string {
 	res, err := h.sqlConnection.Exec(
-		"DELETE FROM commits WHERE chatId = $1",
+		"DELETE FROM commits WHERE chatid = $1",
 		msg.Chat.ID,
 	)
 	if err != nil {
@@ -104,7 +104,7 @@ func (h *Handler) addMentions(msg *tgbotapi.Message) string {
 
 	var mentionID int
 	if err := h.sqlConnection.QueryRow(
-		"INSERT INTO mentions (chatId, gitlabUsername) SELECT $1, $2 WHERE NOT EXISTS (SELECT mentionId FROM mentions WHERE gitlabUsername = $3 AND chatId = $4) RETURNING mentionId",
+		"INSERT INTO mentions (chatid, gitlabUsername) SELECT $1, $2 WHERE NOT EXISTS (SELECT mentionId FROM mentions WHERE gitlabUsername = $3 AND chatid = $4) RETURNING mentionId",
 		msg.Chat.ID,
 		username,
 		username,
@@ -149,7 +149,7 @@ func (h *Handler) removeMentionsText(msg *tgbotapi.Message) string {
 	}
 
 	res, err := h.sqlConnection.Exec(
-		"DELETE FROM mentions WHERE chatId = $1 AND gitlabUsername = $2",
+		"DELETE FROM mentions WHERE chatid = $1 AND gitlabUsername = $2",
 		msg.Chat.ID,
 		username,
 	)
@@ -182,7 +182,7 @@ type Mention struct {
 
 func (h *Handler) listMentionsText(msg *tgbotapi.Message) string {
 	rows, err := h.sqlConnection.Query(
-		"SELECT timestamp_add, gitlabUsername FROM mentions WHERE chatId = $1",
+		"SELECT timestamp_add, gitlabUsername FROM mentions WHERE chatid = $1",
 		msg.Chat.ID,
 	)
 	if err != nil {
@@ -230,7 +230,7 @@ func (h *Handler) HandleCommitsEnabled(msg *tgbotapi.Message) {
 
 func (h *Handler) commitsText(msg *tgbotapi.Message) string {
 	res, err := h.sqlConnection.Exec(
-		"SELECT commitId FROM commits WHERE chatId = $1",
+		"SELECT commitId FROM commits WHERE chatid = $1",
 		msg.Chat.ID,
 	)
 	if err != nil {

@@ -41,7 +41,7 @@ SET default_with_oids = false;
 CREATE TABLE commits (
     commitid integer NOT NULL,
     timestamp_add timestamp with time zone DEFAULT now() NOT NULL,
-    "chatId" bigint DEFAULT 0 NOT NULL
+    chatid bigint DEFAULT 0 NOT NULL
 );
 
 
@@ -70,7 +70,7 @@ ALTER SEQUENCE commits_commitid_seq OWNED BY commits.commitid;
 
 CREATE TABLE mentions (
     mentionid integer NOT NULL,
-    "chatId" bigint DEFAULT 0 NOT NULL,
+    chatid bigint DEFAULT 0 NOT NULL,
     timestamp_add timestamp with time zone DEFAULT now() NOT NULL,
     gitlabusername character varying(256) DEFAULT ''::character varying NOT NULL
 );
